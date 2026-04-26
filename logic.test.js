@@ -7,9 +7,9 @@ import { calcTextPosition, calcPreviewOffset, calcPreviewFontSize, calcCoverCrop
 describe('calcTextPosition', () => {
   const textH = 3.5; // default text block height matching LAYOUT.textH * 7.5
 
-  it('at 0% the text block top edge is at the top of usable area', () => {
+  it('at 0% the text block top edge is at the top of the slide', () => {
     const pos = calcTextPosition(0, textH);
-    expect(pos.y).toBeCloseTo(LAYOUT.topPad * PPTX.HEIGHT, 2);
+    expect(pos.y).toBeCloseTo(0, 2);
   });
 
   it('at 100% the text block bottom edge is just above the footer', () => {
@@ -21,11 +21,16 @@ describe('calcTextPosition', () => {
 
   it('at 50% the text block is vertically centered in usable area', () => {
     const pos = calcTextPosition(50, textH);
-    const usableTop = LAYOUT.topPad * PPTX.HEIGHT;
     const usableBottom = PPTX.HEIGHT * (1 - LAYOUT.footerH);
-    const usableCenter = (usableTop + usableBottom) / 2;
+    const usableCenter = usableBottom / 2;
     const blockCenter = pos.y + pos.h / 2;
     expect(blockCenter).toBeCloseTo(usableCenter, 1);
+  });
+
+  it('at 50% centers on the full slide when footer is disabled', () => {
+    const pos = calcTextPosition(50, textH, false);
+    const blockCenter = pos.y + pos.h / 2;
+    expect(blockCenter).toBeCloseTo(PPTX.HEIGHT / 2, 2);
   });
 
   it('y increases monotonically from 0% to 100%', () => {
@@ -38,7 +43,7 @@ describe('calcTextPosition', () => {
   });
 
   it('text block never exceeds the usable area', () => {
-    const topLimit = LAYOUT.topPad * PPTX.HEIGHT;
+    const topLimit = 0;
     const bottomLimit = PPTX.HEIGHT * (1 - LAYOUT.footerH);
     for (let pct = 0; pct <= 100; pct += 5) {
       const pos = calcTextPosition(pct, textH);
@@ -55,9 +60,9 @@ describe('calcTextPosition', () => {
   it('handles text block taller than usable area by clamping', () => {
     const hugeH = 20;
     const pos = calcTextPosition(50, hugeH);
-    const usableHeight = PPTX.HEIGHT * (1 - LAYOUT.topPad - LAYOUT.footerH);
+    const usableHeight = PPTX.HEIGHT * (1 - LAYOUT.footerH);
     expect(pos.h).toBeCloseTo(usableHeight, 1);
-    expect(pos.y).toBeCloseTo(LAYOUT.topPad * PPTX.HEIGHT, 1);
+    expect(pos.y).toBeCloseTo(0, 1);
   });
 
   it('0% and 100% produce different y values for normal text block', () => {
@@ -71,9 +76,9 @@ describe('calcTextPosition', () => {
 // calcPreviewOffset — browser preview margin
 // =============================================================================
 describe('calcPreviewOffset', () => {
-  it('at 0% top equals topPad fraction', () => {
+  it('at 0% top equals the top of the slide', () => {
     const result = calcPreviewOffset(0);
-    expect(result.top).toBeCloseTo(LAYOUT.topPad, 3);
+    expect(result.top).toBeCloseTo(0, 3);
   });
 
   it('at 100% bottom edge of text block is just above footer', () => {
@@ -84,9 +89,15 @@ describe('calcPreviewOffset', () => {
 
   it('at 50% text block is centered in usable area', () => {
     const result = calcPreviewOffset(50);
-    const usableCenter = (LAYOUT.topPad + (1 - LAYOUT.footerH)) / 2;
+    const usableCenter = (1 - LAYOUT.footerH) / 2;
     const blockCenter = result.top + result.height / 2;
     expect(blockCenter).toBeCloseTo(usableCenter, 2);
+  });
+
+  it('at 50% text block is centered on the full preview when footer is disabled', () => {
+    const result = calcPreviewOffset(50, false);
+    const blockCenter = result.top + result.height / 2;
+    expect(blockCenter).toBeCloseTo(0.5, 3);
   });
 
   it('top increases monotonically', () => {

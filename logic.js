@@ -96,18 +96,18 @@ export const LAYOUT = {
 /**
  * Calculate the PPTX text box position based on margin-top percentage.
  *
- * - 0%   → text block top edge at the top of the usable area
- * - 50%  → text block vertically centered in usable area
- * - 100% → text block bottom edge at the bottom of usable area (just above footer)
+ * - 0%   → text block top edge at the top of the slide
+ * - 50%  → text block vertically centered in the available slide area
+ * - 100% → text block bottom edge at the bottom of the available slide area
  *
  * @param {number} marginPercent - 0 to 100
  * @param {number} textBlockHeight - height of the text box in inches
+ * @param {boolean} footerEnabled - whether to reserve footer space at the bottom
  * @returns {{x: number, y: number, w: number, h: number}} position/size in inches
  */
-export function calcTextPosition(marginPercent, textBlockHeight) {
-  const topPad = LAYOUT.topPad * PPTX.HEIGHT;
-  const usableBottom = PPTX.HEIGHT - LAYOUT.footerH * PPTX.HEIGHT;
-  const usableHeight = usableBottom - topPad;
+export function calcTextPosition(marginPercent, textBlockHeight, footerEnabled = true) {
+  const footerH = footerEnabled ? LAYOUT.footerH * PPTX.HEIGHT : 0;
+  const usableHeight = PPTX.HEIGHT - footerH;
 
   // Clamp text block height to usable area
   const h = Math.min(textBlockHeight, usableHeight);
@@ -115,8 +115,7 @@ export function calcTextPosition(marginPercent, textBlockHeight) {
   // The travel range: how far the top edge can move down
   const travel = usableHeight - h;
 
-  // y = topPad + travel * (marginPercent / 100)
-  const y = topPad + travel * (marginPercent / 100);
+  const y = travel * (marginPercent / 100);
 
   return {
     x: PPTX.MARGIN_X,
@@ -133,16 +132,18 @@ export function calcTextPosition(marginPercent, textBlockHeight) {
  * are pixel-identical in proportion.
  *
  * @param {number} marginPercent - 0 to 100
+ * @param {boolean} footerEnabled - whether to reserve footer space at the bottom
  * @returns {{top: number, height: number}} fractions of slide height (0–1)
  *   top    — where the text block's top edge sits
  *   height — how tall the text block is (as fraction)
  */
-export function calcPreviewOffset(marginPercent) {
-  const usable = 1.0 - LAYOUT.topPad - LAYOUT.footerH;
+export function calcPreviewOffset(marginPercent, footerEnabled = true) {
+  const footerH = footerEnabled ? LAYOUT.footerH : 0;
+  const usable = 1.0 - footerH;
   const textH = Math.min(LAYOUT.textH, usable);
   const travel = Math.max(0, usable - textH);
 
-  const top = LAYOUT.topPad + travel * (marginPercent / 100);
+  const top = travel * (marginPercent / 100);
 
   return { top, height: textH };
 }

@@ -936,10 +936,10 @@ function renderSlide() {
   // Vertical position
   const content = document.querySelector('#slidePreview .slide-content');
   const footerH = footerEnabled ? LAYOUT.footerH : 0;
-  const usable = 1.0 - LAYOUT.topPad - footerH;
+  const usable = 1.0 - footerH;
   const textH = Math.min(LAYOUT.textH, usable);
   const travelRange = Math.max(0, usable - textH);
-  const topOffset = LAYOUT.topPad + travelRange * (marginTop / 100);
+  const topOffset = travelRange * (marginTop / 100);
   content.style.top = (topOffset * 100) + '%';
   content.style.height = (textH * 100) + '%';
   content.style.bottom = 'auto';
@@ -1031,13 +1031,12 @@ async function downloadPptx() {
   const outlineWidth = parseFloat($('outlineWidth').value);
 
   // Map margin % to PPTX y position
-  const pptxTopPad = LAYOUT.topPad * PPTX_HEIGHT;
   const footerLayoutH = footerEnabled ? LAYOUT.footerH : 0;
   const pptxUsableBottom = PPTX_HEIGHT * (1 - footerLayoutH);
-  const pptxUsableHeight = pptxUsableBottom - pptxTopPad;
+  const pptxUsableHeight = pptxUsableBottom;
   const textBlockHeight = Math.min(LAYOUT.textH * PPTX_HEIGHT, pptxUsableHeight);
   const pptxTravel = pptxUsableHeight - textBlockHeight;
-  const yPos = pptxTopPad + pptxTravel * (marginTop / 100);
+  const yPos = pptxTravel * (marginTop / 100);
 
   showToast('正在產生 PPTX…');
 
