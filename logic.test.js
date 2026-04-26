@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcTextPosition, calcPreviewOffset, calcPreviewFontSize, PPTX, LAYOUT, parseSlides } from './logic.js';
+import { calcTextPosition, calcPreviewOffset, calcPreviewFontSize, calcCoverCropSourceRect, PPTX, LAYOUT, parseSlides } from './logic.js';
 
 // =============================================================================
 // calcTextPosition — PPTX margin-from-top
@@ -171,6 +171,31 @@ describe('calcPreviewFontSize', () => {
 
   it('falls back to the point value when preview dimensions are unavailable', () => {
     expect(calcPreviewFontSize(40, 0, 0)).toBe(40);
+  });
+});
+
+// =============================================================================
+// calcCoverCropSourceRect — CSS background-size: cover equivalent
+// =============================================================================
+describe('calcCoverCropSourceRect', () => {
+  it('keeps a matching 16:9 source image uncropped', () => {
+    expect(calcCoverCropSourceRect(1600, 900)).toEqual({ sx: 0, sy: 0, sw: 1600, sh: 900 });
+  });
+
+  it('crops a wide source image horizontally', () => {
+    const rect = calcCoverCropSourceRect(2000, 900, 16 / 9);
+    expect(rect.sx).toBeCloseTo(200);
+    expect(rect.sy).toBe(0);
+    expect(rect.sw).toBeCloseTo(1600);
+    expect(rect.sh).toBe(900);
+  });
+
+  it('crops a tall source image vertically', () => {
+    const rect = calcCoverCropSourceRect(1600, 1200, 16 / 9);
+    expect(rect.sx).toBe(0);
+    expect(rect.sy).toBeCloseTo(150);
+    expect(rect.sw).toBe(1600);
+    expect(rect.sh).toBeCloseTo(900);
   });
 });
 

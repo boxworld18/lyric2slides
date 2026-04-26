@@ -168,3 +168,31 @@ export function calcPreviewFontSize(fontSizePt, previewWidthPx, previewHeightPx)
 
   return (fontSizePt / 72) * pxPerInch;
 }
+
+/**
+ * Calculate the source crop rectangle needed to draw an image as cover.
+ *
+ * The returned source rectangle can be passed to canvas drawImage(). The
+ * destination should be the full slide-sized canvas, producing a bitmap that
+ * already has the target aspect ratio.
+ *
+ * @param {number} imageW - original image width in pixels
+ * @param {number} imageH - original image height in pixels
+ * @param {number} targetAspect - target width / height
+ * @returns {{sx: number, sy: number, sw: number, sh: number}}
+ */
+export function calcCoverCropSourceRect(imageW, imageH, targetAspect = 16 / 9) {
+  if (imageW <= 0 || imageH <= 0 || targetAspect <= 0) {
+    return { sx: 0, sy: 0, sw: imageW, sh: imageH };
+  }
+
+  const imageAspect = imageW / imageH;
+
+  if (imageAspect > targetAspect) {
+    const sw = imageH * targetAspect;
+    return { sx: (imageW - sw) / 2, sy: 0, sw, sh: imageH };
+  }
+
+  const sh = imageW / targetAspect;
+  return { sx: 0, sy: (imageH - sh) / 2, sw: imageW, sh };
+}
