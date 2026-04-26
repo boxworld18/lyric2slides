@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>歌詞轉投影片 — Lyric2Slides</title>
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/PptxGenJS@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 14px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'PingFang SC', 'Microsoft JhengHei', 'Microsoft YaHei', 'Noto Sans TC', sans-serif;
+  background: #0f172a; color: #e2e8f0; min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+/* ===== Header ===== */
+.header {
+  background: #1e293b; padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #334155; flex-shrink: 0;
+}
+.header h1 { font-size: 1.25rem; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+.header h1 .accent { color: #60a5fa; }
+
+/* ===== Main Layout ===== */
+.main {
+  display: grid; grid-template-columns: 1fr 1fr;
+  flex: 1; min-height: 0;
+}
+@media (max-width: 860px) {
+  .main { grid-template-columns: 1fr; }
+}
+
+.panel { padding: 24px; overflow-y: auto; }
+.panel-left { background: #1e293b; border-right: 1px solid #334155; }
+.panel-right { background: #0f172a; display: flex; flex-direction: column; }
+
+/* ===== Form Elements ===== */
+.section-title {
+  font-size: 0.8rem; text-transform: uppercase; color: #94a3b8;
+  letter-spacing: 1px; margin-bottom: 12px; font-weight: 600;
+}
+.input-group { margin-bottom: 16px; }
+.input-group label { display: block; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 5px; font-weight: 500; }
+.input-group input[type="text"],
+.input-group input[type="number"],
+.input-group textarea,
+.input-group select {
+  width: 100%; padding: 9px 12px;
+  background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+  color: #e2e8f0; font-size: 0.95rem; font-family: inherit;
+  transition: border-color 0.15s;
+}
+.input-group input:focus,
+.input-group textarea:focus,
+.input-group select:focus { outline: none; border-color: #60a5fa; }
+.input-group textarea { height: 200px; resize: vertical; line-height: 1.7; }
+
+.row { display: flex; gap: 12px; }
+.row .input-group { flex: 1; }
+.row-3 { display: flex; gap: 12px; }
+.row-3 .input-group { flex: 1; }
+
+.hint { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+.checkbox-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer;
+}
+.checkbox-row label { font-size: 0.9rem; color: #cbd5e1; cursor: pointer; margin-bottom: 0; }
+.badge {
+  display: inline-block; background: #1e40af; color: #93c5fd;
+  font-size: 0.7rem; padding: 1px 7px; border-radius: 10px; margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Color inputs */
+.input-group input[type="color"] {
+  width: 100%; height: 38px; padding: 2px; cursor: pointer;
+  background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+}
+
+/* Range slider */
+.input-group input[type="range"] {
+  width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
+  background: #334155; border-radius: 3px; outline: none; cursor: pointer;
+  margin-top: 4px;
+}
+.input-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #3b82f6; cursor: pointer; border: 2px solid #1e293b;
+}
+.input-group input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #3b82f6; cursor: pointer; border: 2px solid #1e293b;
+}
+
+/* File input styling */
+.file-upload-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.file-upload-row .btn { flex-shrink: 0; }
+.bg-image-info {
+  font-size: 0.82rem; color: #94a3b8; margin-top: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.bg-image-info .thumb {
+  width: 48px; height: 27px; border-radius: 4px; object-fit: cover;
+  border: 1px solid #334155;
+}
+
+/* ===== AI Background Suggest ===== */
+.bg-suggest-status {
+  font-size: 0.82rem; color: #94a3b8; margin-top: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.bg-suggest-status .spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid #334155; border-top-color: #60a5fa;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.bg-suggest-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px; margin-top: 10px;
+}
+.bg-suggest-item {
+  cursor: pointer; border-radius: 8px; overflow: hidden;
+  border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s;
+  background: #0f172a; position: relative;
+}
+.bg-suggest-item:hover {
+  border-color: #475569; transform: translateY(-2px);
+}
+.bg-suggest-item.selected {
+  border-color: #3b82f6;
+}
+.bg-suggest-item img {
+  width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
+  background: #1e293b;
+}
+.bg-suggest-item .caption {
+  font-size: 0.7rem; color: #64748b; padding: 4px 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bg-suggest-item .loading-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.bg-suggest-query {
+  font-size: 0.75rem; color: #475569; margin-top: 4px; font-style: italic;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  padding: 9px 18px; border: none; border-radius: 6px;
+  font-size: 0.9rem; cursor: pointer; font-weight: 500;
+  transition: opacity 0.15s; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { opacity: 0.85; }
+.btn:active { opacity: 0.7; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-success { background: #22c55e; color: #fff; }
+.btn-secondary { background: #334155; color: #e2e8f0; }
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-ai { background: #7c3aed; color: #fff; }
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+.actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+
+/* ===== Slide Preview ===== */
+.preview-area { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.slide-container { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 300px; }
+
+.slide-preview {
+  width: 100%; max-width: 640px; aspect-ratio: 16 / 9;
+  border-radius: 8px; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; border: 1px solid #334155;
+  background-color: #1a1a2e;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.slide-content {
+  position: absolute; top: 0; left: 0; right: 0;
+  z-index: 2; padding: 12px 32px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; overflow: hidden;
+}
+.slide-lyrics {
+  font-size: 1.4rem; line-height: 1.9; color: #fff; font-weight: 500;
+  white-space: pre-line; max-width: 90%;
+}
+.slide-footer {
+  position: absolute; bottom: 0; left: 0; right: 0; 
+  height: 10.7%; /* matches LAYOUT.footerH */
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.slide-footer span { font-size: 0.78rem; color: rgba(255,255,255,0.6); }
+
+.slide-nav {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex-shrink: 0; padding-bottom: 4px;
+}
+.slide-nav .page-info { color: #94a3b8; font-size: 0.85rem; min-width: 120px; text-align: center; }
+
+/* ===== Empty State ===== */
+.empty-state {
+  color: #475569; text-align: center; padding: 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.empty-state .icon { font-size: 2.5rem; }
+.empty-state p { font-size: 0.95rem; }
+
+/* ===== Notification ===== */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+  background: #334155; color: #e2e8f0; border-radius: 8px;
+  font-size: 0.9rem; z-index: 999; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.error { background: #991b1b; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>🎤 <span class="accent">歌詞轉投影片</span></h1>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Left: Input Panel -->
+  <div class="panel panel-left">
+    <div class="section-title">📝 歌曲資訊</div>
+
+    <div class="row">
+      <div class="input-group">
+        <label for="songTitle">歌曲名稱</label>
+        <input type="text" id="songTitle" placeholder="例：月亮代表我的心">
+      </div>
+      <div class="input-group">
+        <label for="singerName">演唱者</label>
+        <input type="text" id="singerName" placeholder="例：鄧麗君">
+      </div>
+      <div class="input-group">
+        <label for="originalSinger">原唱</label>
+        <input type="text" id="originalSinger" placeholder="例：齊秦">
+      </div>
+    </div>
+    <div class="row">
+      <div class="input-group">
+        <label for="lyricist">作詞</label>
+        <input type="text" id="lyricist" placeholder="例：莊奴">
+      </div>
+      <div class="input-group">
+        <label for="composer">作曲</label>
+        <input type="text" id="composer" placeholder="例：翁清溪">
+      </div>
+      <div class="input-group" style="display:flex;align-items:flex-end;">
+        <label class="toggle-label">
+          <input type="checkbox" id="enableCoverSlide" checked>
+          產生首頁投影片
+        </label>
+      </div>
+      <div class="input-group">
+        <label for="coverLang">首頁標籤</label>
+        <select id="coverLang">
+          <option value="tc" selected>繁體</option>
+          <option value="sc">簡體</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label for="lyricsInput">歌詞 <span class="badge">空行 = 分頁</span></label>
+      <textarea id="lyricsInput" placeholder="在此貼上歌詞…&#10;&#10;用空行分隔不同投影片。&#10;若無空行，每 4 行自動分為一頁。"></textarea>
+      <div class="hint">提示：用空行分隔投影片。若無空行，將依「每頁最多行數」自動分頁。</div>
+    </div>
+
+    <div class="section-title">🎨 樣式設定</div>
+
+    <div class="row-3">
+      <div class="input-group">
+        <label for="fontSize">字體大小</label>
+        <input type="number" id="fontSize" value="54" min="12" max="96" step="1">
+        <div class="hint">12-96 pt</div>
+      </div>
+      <div class="input-group" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="checkbox-row">
+          <input type="checkbox" id="textBold" checked>
+          <label for="textBold">粗體歌詞</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="textColor">文字顏色</label>
+        <input type="color" id="textColor" value="#ffffff">
+      </div>
+      <div class="input-group">
+        <label for="bgColor">背景顏色</label>
+        <input type="color" id="bgColor" value="#1a1a2e">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="input-group" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="checkbox-row">
+          <input type="checkbox" id="enableFooter" checked>
+          <label for="enableFooter">顯示頁腳</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="footerColor">頁腳顏色</label>
+        <input type="color" id="footerColor" value="#aaaaaa">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="input-group">
+        <label for="fontFamily">字體</label>
+        <select id="fontFamily">
+          <option value="PingFang TC, Microsoft JhengHei, sans-serif">正黑體 (PingFang / JhengHei)</option>
+          <option value="Noto Sans TC, sans-serif">Noto Sans TC</option>
+          <option value="Noto Serif TC, serif">Noto Serif TC (宋體)</option>
+          <option value="Kaiti TC, DFKai-SB, KaiTi, serif">楷體 (KaiTi)</option>
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="custom">自訂字體…</option>
+        </select>
+      </div>
+      <div class="input-group" id="customFontGroup" style="display:none;">
+        <label for="customFont">自訂字體名稱</label>
+        <input type="text" id="customFont" placeholder="例：Comic Sans MS">
+        <div class="hint">輸入系統已安裝的字體名稱。</div>
+      </div>
+    </div>
+
+    <!-- Background Image Upload -->
+    <div class="input-group">
+      <label>背景圖片</label>
+      <div class="file-upload-row">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bgImageInput').click()">📁 選擇圖片</button>
+        <button class="btn btn-ai btn-sm" id="btnSuggestBg" onclick="suggestBgImages()">🤖 AI 推薦背景</button>
+        <button class="btn btn-danger btn-sm" id="btnClearBgImage" onclick="clearBgImage()" style="display:none;">✕ 清除背景</button>
+        <input type="file" id="bgImageInput" accept="image/*" style="display:none;" onchange="handleBgImageUpload(event)">
+      </div>
+      <div class="bg-image-info" id="bgImageInfo" style="display:none;">
+        <img class="thumb" id="bgImageThumb" src="" alt="bg">
+        <span id="bgImageName"></span>
+      </div>
+      <!-- AI Suggest Status -->
+      <div class="bg-suggest-status" id="bgSuggestStatus" style="display:none;">
+        <span class="spinner"></span>
+        <span id="bgSuggestStatusText">正在搜尋合適的背景圖片…</span>
+      </div>
+      <!-- AI Suggest Query Info -->
+      <div class="bg-suggest-query" id="bgSuggestQuery" style="display:none;"></div>
+      <!-- AI Suggest Grid -->
+      <div class="bg-suggest-grid" id="bgSuggestGrid" style="display:none;"></div>
+      <div class="hint">上傳圖片或使用 AI 推薦作為投影片背景。設定後會取代背景顏色。</div>
+    </div>
+
+    <!-- Text Outline -->
+    <div class="input-group">
+      <div class="checkbox-row" style="margin-bottom: 8px;">
+        <input type="checkbox" id="textOutlineEnabled" checked>
+        <label for="textOutlineEnabled">文字外發光 (Glow)</label>
+      </div>
+      <div class="row" id="outlineControls">
+        <div class="input-group">
+          <label for="outlineColor">發光顏色</label>
+          <input type="color" id="outlineColor" value="#cccccc">
+        </div>
+        <div class="input-group">
+          <label for="outlineWidth">發光強度：<span id="outlineWidthValue">1.5</span>px</label>
+          <input type="range" id="outlineWidth" min="1" max="10" value="1.5" step="0.5">
+        </div>
+      </div>
+      <div class="hint">為歌詞文字添加外發光效果，讓文字在背景圖片上更突出。不影響頁腳文字。</div>
+    </div>
+
+    <div class="input-group">
+      <label for="marginTop">文字頂部邊距：<span id="marginTopValue">50</span>%</label>
+      <input type="range" id="marginTop" min="-50" max="150" value="50">
+      <div class="hint">-50% = 超出上方，0% = 最上方，50% = 正中間，100% = 最下方，150% = 超出下方。</div>
+    </div>
+
+    <div class="section-title">📄 分頁設定</div>
+
+    <div class="row">
+      <div class="input-group">
+        <label for="maxLines">每頁最多行數</label>
+        <input type="number" id="maxLines" value="1" min="1" max="20">
+        <div class="hint">無空行分隔時，每幾行自動分為一頁。</div>
+      </div>
+      <div class="input-group" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="checkbox-row">
+          <input type="checkbox" id="blankLineEmpty" checked>
+          <label for="blankLineEmpty">空行產生空白頁</label>
+        </div>
+        <div class="hint">啟用後，歌詞中的空行會產生一頁空白投影片（如間奏）。</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="generatePreview()">👁 預覽投影片</button>
+      <button class="btn btn-success" onclick="downloadPptx()">📥 下載 PPTX</button>
+    </div>
+  </div>
+
+  <!-- Right: Preview Panel -->
+  <div class="panel panel-right">
+    <div class="section-title">📽 投影片預覽</div>
+
+    <div class="preview-area">
+      <div class="slide-container" id="slideContainer">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">📝</div>
+          <p>在左側貼上歌詞，然後按「預覽投影片」</p>
+        </div>
+        <div class="slide-preview" id="slidePreview" style="display:none;">
+          <div class="slide-content">
+            <div class="slide-lyrics" id="slideLyrics"></div>
+          </div>
+          <div class="slide-footer">
+            <span id="slideFooter"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-nav" id="slideNav" style="display:none;">
+        <button class="btn btn-secondary btn-sm" onclick="prevSlide()">◀ 上一頁</button>
+        <span class="page-info" id="pageInfo">第 1 頁 / 共 1 頁</span>
+        <button class="btn btn-secondary btn-sm" onclick="nextSlide()">下一頁 ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== State =====
+let slides = [];
+let currentSlide = 0;
+let bgImageDataUrl = null; // stores the background image as data URL
+let hasCoverSlide = false; // whether a cover slide is prepended
+
+// ===== Shared Layout Constants (single source of truth) =====
+const LAYOUT = {
+  topPad:  0.3 / 7.5,
+  footerH: 0.8 / 7.5,
+  textH:   3.5 / 7.5,
+};
+
+// PPTX dimensions in inches
+const PPTX_WIDTH = 13.33;
+const PPTX_HEIGHT = 7.5;
+const PPTX_MARGIN_X = 0.5;
+
+// ===== DOM Refs =====
+const $ = (id) => document.getElementById(id);
+
+// ===== Toast =====
+function showToast(msg, isError = false) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ===== Helpers =====
+function getMaxLines() {
+  const val = parseInt($('maxLines').value);
+  return (isNaN(val) || val < 1) ? 4 : val;
+}
+
+function getFont() {
+  const sel = $('fontFamily').value;
+  if (sel === 'custom') {
+    const custom = $('customFont').value.trim();
+    return custom || 'PingFang TC, Microsoft JhengHei, sans-serif';
+  }
+  return sel;
+}
+
+function getFontSize() {
+  const val = parseInt($('fontSize').value);
+  if (isNaN(val)) return 54;
+  return Math.min(96, Math.max(12, val));
+}
+
+function calcPreviewFontSize(fontSizePt) {
+  const preview = $('slidePreview');
+  const previewWidth = preview.clientWidth;
+  const previewHeight = preview.clientHeight;
+  const widthScale = previewWidth > 0 ? previewWidth / PPTX_WIDTH : 0;
+  const heightScale = previewHeight > 0 ? previewHeight / PPTX_HEIGHT : 0;
+  const pxPerInch = widthScale && heightScale ? Math.min(widthScale, heightScale) : widthScale || heightScale;
+
+  if (!pxPerInch) return fontSizePt;
+
+  return (fontSizePt / 72) * pxPerInch;
+}
+
+// Font selector: show/hide custom input
+$('fontFamily').addEventListener('change', () => {
+  $('customFontGroup').style.display = $('fontFamily').value === 'custom' ? '' : 'none';
+  if (slides.length > 0) renderSlide();
+});
+$('customFont').addEventListener('input', () => {
+  if (slides.length > 0) renderSlide();
+});
+
+// Margin top: update label + live preview
+$('marginTop').addEventListener('input', () => {
+  $('marginTopValue').textContent = $('marginTop').value;
+  if (slides.length > 0) renderSlide();
+});
+
+['fontSize', 'textBold', 'textColor', 'bgColor', 'enableFooter', 'footerColor'].forEach(id => {
+  $(id).addEventListener('input', () => { if (slides.length > 0) renderSlide(); });
+  $(id).addEventListener('change', () => { if (slides.length > 0) renderSlide(); });
+});
+
+// ===== Background Image =====
+function handleBgImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    bgImageDataUrl = e.target.result;
+    // Show info
+    $('bgImageInfo').style.display = '';
+    $('bgImageThumb').src = bgImageDataUrl;
+    $('bgImageName').textContent = file.name;
+    $('btnClearBgImage').style.display = '';
+    // Clear AI selection highlight
+    clearSuggestSelection();
+    if (slides.length > 0) renderSlide();
+    showToast('背景圖片已設定');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearBgImage() {
+  bgImageDataUrl = null;
+  $('bgImageInput').value = '';
+  $('bgImageInfo').style.display = 'none';
+  $('bgImageThumb').src = '';
+  $('bgImageName').textContent = '';
+  $('btnClearBgImage').style.display = 'none';
+  clearSuggestSelection();
+  if (slides.length > 0) renderSlide();
+  showToast('背景圖片已清除');
+}
+
+// ===== AI Background Suggest =====
+function clearSuggestSelection() {
+  const items = document.querySelectorAll('.bg-suggest-item');
+  items.forEach(item => item.classList.remove('selected'));
+}
+
+async function suggestBgImages() {
+  const lyrics = $('lyricsInput').value.trim();
+  const title = $('songTitle').value.trim();
+
+  if (!lyrics && !title) {
+    showToast('請先輸入歌詞或歌曲名稱', true);
+    return;
+  }
+
+  const btn = $('btnSuggestBg');
+  const statusEl = $('bgSuggestStatus');
+  const statusText = $('bgSuggestStatusText');
+  const gridEl = $('bgSuggestGrid');
+  const queryEl = $('bgSuggestQuery');
+
+  // Show loading
+  btn.disabled = true;
+  btn.textContent = '⏳ 搜尋中…';
+  statusEl.style.display = 'flex';
+  statusText.textContent = '正在搜尋合適的背景圖片…';
+  gridEl.style.display = 'none';
+  gridEl.innerHTML = '';
+  queryEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/suggest-bg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lyrics, title }),
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    if (!data.images || data.images.length === 0) {
+      statusText.textContent = '未找到合適的背景圖片，請嘗試修改歌曲名稱或歌詞。';
+      return;
+    }
+
+    // Show query info
+    if (data.query) {
+      queryEl.textContent = '搜尋關鍵詞：' + data.query;
+      queryEl.style.display = '';
+    }
+
+    // Hide loading, show grid
+    statusEl.style.display = 'none';
+    gridEl.style.display = '';
+
+    // Render image grid
+    data.images.forEach((img, idx) => {
+      const item = document.createElement('div');
+      item.className = 'bg-suggest-item';
+      item.title = img.caption || '點擊選用此圖片';
+
+      const imgEl = document.createElement('img');
+      // Use proxy to avoid CORS
+      imgEl.src = '/api/proxy-image?url=' + encodeURIComponent(img.url);
+      imgEl.alt = img.caption || 'Background ' + (idx + 1);
+      imgEl.loading = 'lazy';
+      imgEl.onerror = function() {
+        this.style.background = '#1e293b';
+        this.alt = '無法載入';
+      };
+
+      const caption = document.createElement('div');
+      caption.className = 'caption';
+      caption.textContent = img.caption || (img.width && img.height ? img.width + '×' + img.height : '背景 ' + (idx + 1));
+
+      item.appendChild(imgEl);
+      item.appendChild(caption);
+
+      item.addEventListener('click', () => selectSuggestedBg(item, img));
+
+      gridEl.appendChild(item);
+    });
+
+    showToast('找到 ' + data.images.length + ' 張推薦背景');
+  } catch (err) {
+    console.error('suggestBgImages error:', err);
+    statusText.textContent = '搜尋失敗：' + err.message;
+    showToast('背景搜尋失敗：' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 AI 推薦背景';
+  }
+}
+
+async function selectSuggestedBg(itemEl, imgData) {
+  // Highlight selection
+  clearSuggestSelection();
+  itemEl.classList.add('selected');
+
+  // Show loading overlay on the clicked item
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = '<span class="spinner"></span>';
+  itemEl.appendChild(overlay);
+
+  try {
+    // Fetch image via proxy and convert to data URL
+    const proxyUrl = '/api/proxy-image?url=' + encodeURIComponent(imgData.url);
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    const blob = await response.blob();
+
+    // Convert blob to data URL
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    bgImageDataUrl = dataUrl;
+
+    // Update UI
+    $('bgImageInfo').style.display = '';
+    $('bgImageThumb').src = dataUrl;
+    $('bgImageName').textContent = imgData.caption || 'AI 推薦背景';
+    $('btnClearBgImage').style.display = '';
+
+    if (slides.length > 0) renderSlide();
+    showToast('背景圖片已設定');
+  } catch (err) {
+    console.error('selectSuggestedBg error:', err);
+    showToast('載入圖片失敗：' + err.message, true);
+    itemEl.classList.remove('selected');
+  } finally {
+    // Remove overlay
+    const existingOverlay = itemEl.querySelector('.loading-overlay');
+    if (existingOverlay) existingOverlay.remove();
+  }
+}
+
+// ===== Text Outline Controls =====
+// Cover slide & song info re-render
+['songTitle', 'singerName', 'originalSinger', 'lyricist', 'composer', 'enableCoverSlide', 'coverLang'].forEach(id => {
+  $(id).addEventListener('input', () => { if (slides.length > 0) renderSlide(); });
+  $(id).addEventListener('change', () => { if (slides.length > 0) renderSlide(); });
+});
+
+$('textOutlineEnabled').addEventListener('change', () => {
+  $('outlineControls').style.display = $('textOutlineEnabled').checked ? '' : 'none';
+  if (slides.length > 0) renderSlide();
+});
+$('outlineWidth').addEventListener('input', () => {
+  $('outlineWidthValue').textContent = $('outlineWidth').value;
+  if (slides.length > 0) renderSlide();
+});
+$('outlineColor').addEventListener('input', () => {
+  if (slides.length > 0) renderSlide();
+});
+
+// ===== Lyrics Parsing =====
+function parseSlides(text, maxLines = 4, blankLineEmpty = false) {
+  const rawLines = text.split('\n');
+  const groups = [];
+  let current = [];
+  let hasBlankLines = false;
+
+  for (const line of rawLines) {
+    if (line.trim() === '') {
+      hasBlankLines = true;
+      if (current.length > 0) {
+        groups.push(current);
+        current = [];
+      }
+      if (blankLineEmpty) {
+        groups.push([]);
+      }
+    } else {
+      current.push(line.trim());
+    }
+  }
+  if (current.length > 0) groups.push(current);
+
+  while (groups.length > 0 && groups[groups.length - 1].length === 0) {
+    groups.pop();
+  }
+  while (groups.length > 0 && groups[0].length === 0) {
+    groups.shift();
+  }
+
+  if (!hasBlankLines && groups.length === 1) {
+    const allLines = groups[0];
+    if (allLines.length > maxLines) {
+      const chunks = [];
+      for (let i = 0; i < allLines.length; i += maxLines) {
+        chunks.push(allLines.slice(i, i + maxLines));
+      }
+      return chunks.map((lines, idx) => ({ lines, index: idx, isEmpty: false }));
+    }
+  }
+
+  const result = [];
+  for (const group of groups) {
+    if (group.length === 0) {
+      result.push([]);
+    } else if (group.length > maxLines) {
+      const numChunks = Math.ceil(group.length / maxLines);
+      const chunkSize = Math.ceil(group.length / numChunks);
+      for (let i = 0; i < group.length; i += chunkSize) {
+        result.push(group.slice(i, i + chunkSize));
+      }
+    } else {
+      result.push(group);
+    }
+  }
+
+  return result.map((lines, idx) => ({ lines, index: idx, isEmpty: lines.length === 0 }));
+}
+
+// ===== Preview =====
+function generatePreview() {
+  const lyrics = $('lyricsInput').value.trim();
+  if (!lyrics) {
+    showToast('請先輸入歌詞', true);
+    return;
+  }
+
+  slides = parseSlides(lyrics, getMaxLines(), $('blankLineEmpty').checked);
+  if (slides.length === 0) {
+    showToast('無法解析歌詞', true);
+    return;
+  }
+
+  // Prepend cover slide if enabled
+  if ($('enableCoverSlide').checked) {
+    slides.unshift({ isCover: true, isEmpty: false, lines: [] });
+  }
+
+  currentSlide = 0;
+  $('emptyState').style.display = 'none';
+  $('slidePreview').style.display = '';
+  $('slideNav').style.display = '';
+  renderSlide();
+  showToast('已產生 ' + slides.length + ' 頁投影片');
+}
+
+function renderSlide() {
+  if (slides.length === 0) return;
+  const slide = slides[currentSlide];
+  const songTitle = $('songTitle').value.trim();
+  const singer = $('singerName').value.trim();
+  const fontSize = getFontSize();
+  const textBold = $('textBold').checked;
+  const footerEnabled = $('enableFooter').checked;
+  const textColor = $('textColor').value;
+  const bgColor = $('bgColor').value;
+  const fontFamily = getFont();
+  const marginTop = parseInt($('marginTop').value);
+
+  // Text outline
+  const outlineEnabled = $('textOutlineEnabled').checked;
+  const outlineColor = $('outlineColor').value;
+  const outlineWidth = parseFloat($('outlineWidth').value);
+
+  // Lyrics / Cover slide
+  if (slide.isCover) {
+    // Build cover slide content
+    const title = $('songTitle').value.trim();
+    const singer = $('singerName').value.trim();
+    const original = $('originalSinger').value.trim();
+    const lyricist = $('lyricist').value.trim();
+    const composer = $('composer').value.trim();
+    let coverHtml = '';
+    if (title) coverHtml += '<div style="font-size:1.6em;margin-bottom:0.5em;font-weight:bold;">《' + title.replace(/</g,'&lt;') + '》</div>';
+    const isTc = $('coverLang').value === 'tc';
+    const L = isTc
+      ? { sing: '演唱', orig: '原唱', lyric: '作詞', comp: '作曲' }
+      : { sing: '演唱', orig: '原唱', lyric: '作词', comp: '作曲' };
+    const credits = [];
+    if (singer) credits.push(L.sing + '：' + singer);
+    if (original) credits.push(L.orig + '：' + original);
+    if (lyricist) credits.push(L.lyric + '：' + lyricist);
+    if (composer) credits.push(L.comp + '：' + composer);
+    if (credits.length > 0) coverHtml += '<div style="font-size:0.7em;line-height:1.4;opacity:0.85;">' + credits.map(c => c.replace(/</g,'&lt;')).join('<br>') + '</div>';
+    $('slideLyrics').innerHTML = coverHtml || '<div style="opacity:0.5;">（首頁）</div>';
+  } else if (slide.isEmpty) {
+    $('slideLyrics').textContent = '';
+  } else {
+    $('slideLyrics').textContent = slide.lines.join('\n');
+  }
+  const previewFontSize = calcPreviewFontSize(fontSize);
+  $('slideLyrics').style.fontSize = previewFontSize + 'px';
+  $('slideLyrics').style.color = textColor;
+  $('slideLyrics').style.fontFamily = fontFamily;
+  $('slideLyrics').style.fontWeight = textBold ? '700' : '400';
+
+  // Text glow for lyrics (soft diffused glow — no hard contour)
+  if (outlineEnabled) {
+    const scale = previewFontSize / fontSize;
+    const r = outlineWidth * scale;
+    // Parse hex color to rgba for opacity layers
+    const hex = outlineColor.replace('#', '');
+    const cr = parseInt(hex.substring(0, 2), 16);
+    const cg = parseInt(hex.substring(2, 4), 16);
+    const cb = parseInt(hex.substring(4, 6), 16);
+    const rgba = (a) => `rgba(${cr},${cg},${cb},${a})`;
+    // Pure blur layers — no hard offsets, all softness
+    const layers = [
+      `0 0 ${(r * 2).toFixed(1)}px ${rgba(0.6)}`,
+      `0 0 ${(r * 4).toFixed(1)}px ${rgba(0.45)}`,
+      `0 0 ${(r * 8).toFixed(1)}px ${rgba(0.3)}`,
+      `0 0 ${(r * 14).toFixed(1)}px ${rgba(0.2)}`,
+      `0 0 ${(r * 22).toFixed(1)}px ${rgba(0.1)}`,
+    ];
+    $('slideLyrics').style.textShadow = layers.join(', ');
+  } else {
+    $('slideLyrics').style.textShadow = '';
+  }
+
+  // Vertical position
+  const content = document.querySelector('#slidePreview .slide-content');
+  const footerH = footerEnabled ? LAYOUT.footerH : 0;
+  const usable = 1.0 - LAYOUT.topPad - footerH;
+  const textH = Math.min(LAYOUT.textH, usable);
+  const travelRange = Math.max(0, usable - textH);
+  const topOffset = LAYOUT.topPad + travelRange * (marginTop / 100);
+  content.style.top = (topOffset * 100) + '%';
+  content.style.height = (textH * 100) + '%';
+  content.style.bottom = 'auto';
+
+  // Background: image takes priority over color
+  const preview = $('slidePreview');
+  if (bgImageDataUrl) {
+    preview.style.backgroundImage = 'url(' + bgImageDataUrl + ')';
+    preview.style.backgroundColor = bgColor; // fallback
+  } else {
+    preview.style.backgroundImage = 'none';
+    preview.style.backgroundColor = bgColor;
+  }
+
+  // Footer
+  let footer = '';
+  if (footerEnabled && songTitle && singer) footer = songTitle + ' — ' + singer;
+  else if (footerEnabled && songTitle) footer = songTitle;
+  else if (footerEnabled && singer) footer = singer;
+  $('slideFooter').textContent = footer;
+  $('slideFooter').style.color = $('footerColor').value;
+  $('slideFooter').parentElement.style.display = footerEnabled ? 'flex' : 'none';
+
+  // Footer: no shadow effect (keep clean)
+
+  // Page info
+  $('pageInfo').textContent = '第 ' + (currentSlide + 1) + ' 頁 / 共 ' + slides.length + ' 頁';
+}
+
+function prevSlide() {
+  if (currentSlide > 0) { currentSlide--; renderSlide(); }
+}
+
+function nextSlide() {
+  if (currentSlide < slides.length - 1) { currentSlide++; renderSlide(); }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowLeft') prevSlide();
+  if (e.key === 'ArrowRight') nextSlide();
+});
+
+window.addEventListener('resize', () => {
+  if (slides.length > 0) renderSlide();
+});
+
+// ===== PPTX Download =====
+async function downloadPptx() {
+  const lyrics = $('lyricsInput').value.trim();
+  if (!lyrics) {
+    showToast('請先輸入歌詞', true);
+    return;
+  }
+
+  // Parse if not already done
+  if (slides.length === 0) {
+    slides = parseSlides(lyrics, getMaxLines(), $('blankLineEmpty').checked);
+  }
+  if (slides.length === 0) {
+    showToast('無法解析歌詞', true);
+    return;
+  }
+
+  // Ensure cover slide is in the list for export
+  const exportSlides = [...slides];
+  const wantCover = $('enableCoverSlide').checked;
+  const alreadyHasCover = exportSlides.length > 0 && exportSlides[0].isCover;
+  if (wantCover && !alreadyHasCover) {
+    exportSlides.unshift({ isCover: true, isEmpty: false, lines: [] });
+  } else if (!wantCover && alreadyHasCover) {
+    exportSlides.shift();
+  }
+
+  const songTitle = $('songTitle').value.trim();
+  const singer = $('singerName').value.trim();
+  const fontSize = getFontSize();
+  const textBold = $('textBold').checked;
+  const footerEnabled = $('enableFooter').checked;
+  const textColor = $('textColor').value.replace('#', '');
+  const bgColor = $('bgColor').value.replace('#', '');
+  const fontFamily = getFont();
+  const marginTop = parseInt($('marginTop').value);
+
+  // Text outline settings
+  const outlineEnabled = $('textOutlineEnabled').checked;
+  const outlineColor = $('outlineColor').value.replace('#', '');
+  const outlineWidth = parseFloat($('outlineWidth').value);
+
+  // Map margin % to PPTX y position
+  const pptxTopPad = LAYOUT.topPad * PPTX_HEIGHT;
+  const footerLayoutH = footerEnabled ? LAYOUT.footerH : 0;
+  const pptxUsableBottom = PPTX_HEIGHT * (1 - footerLayoutH);
+  const pptxUsableHeight = pptxUsableBottom - pptxTopPad;
+  const textBlockHeight = Math.min(LAYOUT.textH * PPTX_HEIGHT, pptxUsableHeight);
+  const pptxTravel = pptxUsableHeight - textBlockHeight;
+  const yPos = pptxTopPad + pptxTravel * (marginTop / 100);
+
+  showToast('正在產生 PPTX…');
+
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE'; // 16:9
+
+    // Footer text
+    let footer = '';
+    if (footerEnabled && songTitle && singer) footer = songTitle + ' — ' + singer;
+    else if (footerEnabled && songTitle) footer = songTitle;
+    else if (footerEnabled && singer) footer = singer;
+
+    // Prepare glow options for lyrics text
+    const lyricsGlowOpts = outlineEnabled ? { glow: { size: outlineWidth * 4, opacity: 0.45, color: outlineColor } } : {};
+
+    // Prepare background image data (strip data URL prefix for PptxGenJS)
+    let bgImageData = null;
+    if (bgImageDataUrl) {
+      bgImageData = bgImageDataUrl; // PptxGenJS accepts full data URL
+    }
+
+    for (const slideData of exportSlides) {
+      const s = pptx.addSlide();
+
+      // Background: image takes priority
+      if (bgImageData) {
+        s.background = { data: bgImageData };
+      } else {
+        s.background = { fill: bgColor };
+      }
+
+      // Cover slide
+      if (slideData.isCover) {
+        const coverTitle = songTitle ? '《' + songTitle + '》' : '';
+        const isTc = $('coverLang').value === 'tc';
+        const L = isTc
+          ? { sing: '演唱', orig: '原唱', lyric: '作詞', comp: '作曲' }
+          : { sing: '演唱', orig: '原唱', lyric: '作词', comp: '作曲' };
+        const coverLines = [];
+        if (singer) coverLines.push(L.sing + '：' + singer);
+        const origSinger = $('originalSinger').value.trim();
+        if (origSinger) coverLines.push(L.orig + '：' + origSinger);
+        const lyr = $('lyricist').value.trim();
+        if (lyr) coverLines.push(L.lyric + '：' + lyr);
+        const comp = $('composer').value.trim();
+        if (comp) coverLines.push(L.comp + '：' + comp);
+
+        // Title
+        if (coverTitle) {
+          s.addText(coverTitle, {
+            x: PPTX_MARGIN_X, y: '25%', w: PPTX_WIDTH - 2 * PPTX_MARGIN_X, h: '20%',
+            fontSize: 60,
+            color: textColor,
+            align: 'center',
+            valign: 'middle',
+            fontFace: fontFamily.split(',')[0].trim(),
+            bold: true,
+            ...lyricsGlowOpts,
+          });
+        }
+        // Credits
+        if (coverLines.length > 0) {
+          s.addText(coverLines.join('\n'), {
+            x: PPTX_MARGIN_X, y: '50%', w: PPTX_WIDTH - 2 * PPTX_MARGIN_X, h: '30%',
+            fontSize: 24,
+            color: textColor,
+            align: 'center',
+            valign: 'top',
+            lineSpacingMultiple: 1.3,
+            fontFace: fontFamily.split(',')[0].trim(),
+          });
+        }
+        continue; // skip normal lyrics rendering for cover slide
+      }
+
+      // Lyrics text — centered (skip for empty slides)
+      if (!slideData.isEmpty) {
+        const lyricsText = slideData.lines.join('\n');
+        s.addText(lyricsText, {
+          x: PPTX_MARGIN_X, y: yPos, w: PPTX_WIDTH - 2 * PPTX_MARGIN_X, h: textBlockHeight,
+          fontSize: fontSize,
+          color: textColor,
+          align: 'center',
+          valign: 'middle',
+          lineSpacingMultiple: 1.8,
+          fontFace: fontFamily.split(',')[0].trim(),
+          bold: textBold,
+          ...lyricsGlowOpts,
+        });
+      }
+
+      // Footer
+      if (footer) {
+        const footerY = PPTX_HEIGHT * (1 - LAYOUT.footerH);
+        const footerH = LAYOUT.footerH * PPTX_HEIGHT;
+        s.addText(footer, {
+          x: PPTX_MARGIN_X, y: footerY, w: PPTX_WIDTH - 2 * PPTX_MARGIN_X, h: footerH,
+          fontSize: 14,
+          color: $('footerColor').value.replace('#', ''),
+          align: 'center',
+          valign: 'middle',
+          fontFace: fontFamily.split(',')[0].trim(),
+        });
+      }
+    }
+
+    const fileName = (songTitle || '歌詞投影片') + '.pptx';
+    await pptx.writeFile({ fileName: fileName });
+    showToast('已下載 ' + fileName);
+  } catch (err) {
+    console.error('PPTX generation error:', err);
+    showToast('產生 PPTX 時發生錯誤：' + err.message, true);
+  }
+}
+</script>
+</body>
+</html>

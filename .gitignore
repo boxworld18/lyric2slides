@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Package manager caches
+.npm/
+.pnpm-store/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime state
+*.log
+*.pid
+.server.*
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Build and generated output
+dist/
+build/
+*.pptx
+*.ppt
+*.pptm
+
+# Local tool/workspace metadata
+.codex
+.superpowers/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
