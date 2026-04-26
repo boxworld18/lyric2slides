@@ -180,9 +180,10 @@ export function calcPreviewFontSize(fontSizePt, previewWidthPx, previewHeightPx)
  * @param {number} imageW - original image width in pixels
  * @param {number} imageH - original image height in pixels
  * @param {number} targetAspect - target width / height
+ * @param {number} cropYPercent - vertical crop anchor, from 0 top to 100 bottom
  * @returns {{sx: number, sy: number, sw: number, sh: number}}
  */
-export function calcCoverCropSourceRect(imageW, imageH, targetAspect = 16 / 9) {
+export function calcCoverCropSourceRect(imageW, imageH, targetAspect = 16 / 9, cropYPercent = 50) {
   if (imageW <= 0 || imageH <= 0 || targetAspect <= 0) {
     return { sx: 0, sy: 0, sw: imageW, sh: imageH };
   }
@@ -195,5 +196,7 @@ export function calcCoverCropSourceRect(imageW, imageH, targetAspect = 16 / 9) {
   }
 
   const sh = imageW / targetAspect;
-  return { sx: 0, sy: (imageH - sh) / 2, sw: imageW, sh };
+  const maxSy = Math.max(0, imageH - sh);
+  const cropY = Math.min(100, Math.max(0, cropYPercent)) / 100;
+  return { sx: 0, sy: maxSy * cropY, sw: imageW, sh };
 }

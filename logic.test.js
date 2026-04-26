@@ -208,6 +208,20 @@ describe('calcCoverCropSourceRect', () => {
     expect(rect.sw).toBe(1600);
     expect(rect.sh).toBeCloseTo(900);
   });
+
+  it('uses cropYPercent to choose the vertical crop anchor', () => {
+    const top = calcCoverCropSourceRect(1600, 1200, 16 / 9, 0);
+    const bottom = calcCoverCropSourceRect(1600, 1200, 16 / 9, 100);
+    expect(top.sy).toBeCloseTo(0);
+    expect(bottom.sy).toBeCloseTo(300);
+  });
+
+  it('clamps cropYPercent between top and bottom', () => {
+    const above = calcCoverCropSourceRect(1600, 1200, 16 / 9, -25);
+    const below = calcCoverCropSourceRect(1600, 1200, 16 / 9, 125);
+    expect(above.sy).toBeCloseTo(0);
+    expect(below.sy).toBeCloseTo(300);
+  });
 });
 
 // =============================================================================
